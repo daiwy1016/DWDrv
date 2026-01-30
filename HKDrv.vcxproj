@@ -167,6 +167,7 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="HideProcessDrv.c" />
     <ClCompile Include="main.c" />
   </ItemGroup>
   <ItemGroup>

